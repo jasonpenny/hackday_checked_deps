@@ -9,8 +9,19 @@ require 'dry-auto_inject'
 module BrazeDeps
   # Error to be raised in validate_dependencies! if expectation is not met
   class DependencyError < StandardError
-    def initialize(klass, instance, method, actual_params, dependant_params)
-      super("DependencyError in #{klass} : #{instance}##{method} wants params #{dependant_params} but receives #{actual_params}")
+    def initialize(klass, instance, method_def, actual_param_types)
+      super("DependencyError in #{klass} : #{instance}##{method_def.name} " \
+            "wants params #{method_def.param_types} but receives #{actual_param_types}")
+    end
+  end
+
+  # Helps to define a method with a name and param_types
+  class MethodDefinition
+    attr_accessor :name, :param_types
+
+    def initialize(name, param_types: [])
+      @name = name
+      @param_types = param_types
     end
   end
 
@@ -18,39 +29,38 @@ module BrazeDeps
 
   INJECT = Dry::AutoInject(BrazeDeps)
 
-  def self.depend_on(klass, dependencies_hash)
-    klass.include INJECT[*dependencies_hash.keys]
+  def self.depend_on(klass, dependencies)
+    klass.include INJECT[*dependencies.keys]
 
     @dependency_methods ||= {}
-    dependencies_hash.each do |dependency, methods_and_params|
-      methods_and_params.each do |method, params|
-        @dependency_methods[dependency] ||= {}
-        @dependency_methods[dependency][method] ||= {}
-        @dependency_methods[dependency][method][klass] = params
-      end
+    dependencies.each do |dependency, method_defs|
+      @dependency_methods[dependency] ||= {}
+      @dependency_methods[dependency][klass] = method_defs
     end
   end
 
   def self.validate_dependencies!
     return if @dependency_methods.nil?
 
-    @dependency_methods.each do |dependency, methods_and_klasses|
-      methods_and_klasses.each do |method, klasses_and_params|
-        validate_dependency(klasses_and_params, instance: resolve(dependency), method: method)
+    @dependency_methods.each do |dependency, klass_and_method_defs|
+      klass_and_method_defs.each do |klass, method_defs|
+        method_defs.each do |method_def|
+          validate_dependency(klass, instance: resolve(dependency), method_def: method_def)
+        end
       end
     end
   end
 
-  private_class_method def self.validate_dependency(klasses_and_params, instance:, method:)
-    actual_params = method_parameter_types(instance, method)
+  private_class_method def self.validate_dependency(klass, instance:, method_def:)
+    actual_param_types = method_parameter_types(instance, method_def)
 
-    klasses_and_params.each do |klass, params|
-      raise BrazeDeps::DependencyError.new(klass, instance, method, actual_params, params) if params != actual_params
-    end
+    return if method_def.param_types == actual_param_types
+
+    raise BrazeDeps::DependencyError.new(klass, instance, method_def, actual_param_types)
   end
 
-  def self.method_parameter_types(instance, method_name)
-    instance.public_method(method_name).parameters.map { _1[0] }
+  def self.method_parameter_types(instance, method_def)
+    instance.public_method(method_def.name).parameters.map { _1[0] }
   end
 end
 
@@ -60,16 +70,19 @@ module Other
     BrazeDeps.depend_on(
       self,
       {
-        # TODO : maybe syntactical sugar for BrazeDeps::MethodDefinition(info, %i[rest block])
-        logger: { info: %i[req req block] }
+        logger: [
+          BrazeDeps::MethodDefinition.new(:info, param_types: %i[req req block])
+        ]
       }
     )
 
     def call
+      # injected ivar @logger by calling BrazeDeps.depend_on()
       logger.info('abc', 'def') { 'block' }
     end
 
     def self.self_call
+      # not injected to the class, so use BrazeDeps.resolve() or BrazeDeps[]
       BrazeDeps[:logger].info('abc', 'def') { 'block' }
     end
   end
