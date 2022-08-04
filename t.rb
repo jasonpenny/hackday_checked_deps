@@ -61,7 +61,7 @@ module Other
       self,
       {
         # TODO : maybe syntactical sugar for BrazeDeps::MethodDefinition(info, %i[rest block])
-        logger: { info: %i[req req] }
+        logger: { info: %i[req req block] }
       }
     )
 
