@@ -6,13 +6,8 @@ require 'dry-auto_inject'
 # BrazeDeps dependency container and injection
 # with method+signature checking
 module BrazeDeps
-  # Error to be raised in validate_dependencies! if expectation is not met
-  class DependencyError < StandardError
-    def initialize(klass, instance, method_def, actual_param_types)
-      super("DependencyError in #{klass} : #{instance}##{method_def.name} " \
-            "wants params #{method_def.param_types} but receives #{actual_param_types}")
-    end
-  end
+  class MissingMethodError < StandardError; end
+  class WrongArgumentsError < StandardError; end
 
   # Helps to define a method with a name and param_types
   class MethodDefinition
@@ -27,6 +22,7 @@ module BrazeDeps
   extend Dry::Container::Mixin
 
   INJECT = Dry::AutoInject(BrazeDeps)
+  private_constant :INJECT
 
   def self.depend_on(klass, dependencies)
     klass.include INJECT[*dependencies.keys]
@@ -55,11 +51,15 @@ module BrazeDeps
 
     return if method_def.param_types == actual_param_types
 
-    raise BrazeDeps::DependencyError.new(klass, instance, method_def, actual_param_types)
+    raise BrazeDeps::WrongArgumentsError,
+          "#{klass} : #{instance}##{method_def.name} " \
+          "wants arguments #{method_def.param_types} but receives #{actual_param_types}"
   end
 
   def self.method_parameter_types(instance, method_def)
     instance.public_method(method_def.name).parameters.map { _1[0] }
+  rescue NameError
+    raise BrazeDeps::MissingMethodError, "#{instance}##{method_def.name} does not exist"
   end
 end
 
@@ -70,7 +70,8 @@ module Other
       self,
       {
         logger: [
-          BrazeDeps::MethodDefinition.new(:info, param_types: %i[req req block])
+          BrazeDeps::MethodDefinition.new(:info, param_types: %i[req req block]),
+          BrazeDeps::MethodDefinition.new(:debug, param_types: %i[req])
         ]
       }
     )
@@ -93,6 +94,9 @@ module Jason
     def self.info(abc, efg, &blk)
       puts abc, efg, blk.call
     end
+
+    def self.debug(str); end
+
     BrazeDeps.register(:logger) { self }
   end
 end
