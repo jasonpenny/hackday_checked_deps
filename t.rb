@@ -1,6 +1,5 @@
 # frozen_string_literal: true
 
-require 'byebug'
 require 'dry-container'
 require 'dry-auto_inject'
 
