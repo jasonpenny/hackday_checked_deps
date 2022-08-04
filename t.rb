@@ -6,7 +6,7 @@ require 'dry-auto_inject'
 
 # BrazeDeps dependency container and injection
 # with method+signature checking
-class BrazeDeps
+module BrazeDeps
   # Error to be raised in validate_dependencies! if expectation is not met
   class DependencyError < StandardError
     def initialize(klass, instance, method, actual_params, dependant_params)
