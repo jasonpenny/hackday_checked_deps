@@ -12,7 +12,7 @@ module CheckedDeps
   extend Dry::Container::Mixin
 
   INJECT = Dry::AutoInject(CheckedDeps)
-  private_constant :INJECT
+  # private_constant :INJECT
 
   def self.depend_on(klass, dependencies, auto_inject: true)
     klass.include INJECT[*dependencies.keys] if auto_inject
