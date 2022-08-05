@@ -3,9 +3,9 @@
 require 'dry-container'
 require 'dry-auto_inject'
 
-# BrazeDeps dependency container and injection
+# CheckedDeps dependency container and injection
 # with method+signature checking
-module BrazeDeps
+module CheckedDeps
   class MissingMethodError < StandardError; end
   class WrongArgumentsError < StandardError; end
 
@@ -21,7 +21,7 @@ module BrazeDeps
 
   extend Dry::Container::Mixin
 
-  INJECT = Dry::AutoInject(BrazeDeps)
+  INJECT = Dry::AutoInject(CheckedDeps)
   private_constant :INJECT
 
   def self.depend_on(klass, dependencies, auto_inject: true)
@@ -54,7 +54,7 @@ module BrazeDeps
 
     return if method_def.param_types == actual_param_types
 
-    raise BrazeDeps::WrongArgumentsError,
+    raise CheckedDeps::WrongArgumentsError,
           "#{klass} : #{instance}##{method_def.name} " \
           "wants arguments #{method_def.param_types} but receives #{actual_param_types}"
   end
@@ -62,31 +62,31 @@ module BrazeDeps
   def self.method_parameter_types(instance, method_def)
     instance.public_method(method_def.name).parameters.map { _1[0] }
   rescue NameError
-    raise BrazeDeps::MissingMethodError, "#{instance}##{method_def.name} does not exist"
+    raise CheckedDeps::MissingMethodError, "#{instance}##{method_def.name} does not exist"
   end
 end
 
 module Other
   # A class to autoinject the registered logger
   class DependencyUser
-    BrazeDeps.depend_on(
+    CheckedDeps.depend_on(
       self,
       {
         logger: [
-          BrazeDeps::MethodDefinition.new(:info, param_types: %i[req req block]),
-          BrazeDeps::MethodDefinition.new(:debug, param_types: %i[req])
+          CheckedDeps::MethodDefinition.new(:info, param_types: %i[req req block]),
+          CheckedDeps::MethodDefinition.new(:debug, param_types: %i[req])
         ]
       }
     )
 
     def call
-      # injected ivar @logger by calling BrazeDeps.depend_on()
+      # injected ivar @logger by calling CheckedDeps.depend_on()
       logger.info('abc', 'def') { 'block' }
     end
 
     def self.self_call
-      # not injected to the class, so use BrazeDeps.resolve() or BrazeDeps[]
-      BrazeDeps[:logger].info('abc', 'def') { 'block' }
+      # not injected to the class, so use CheckedDeps.resolve() or CheckedDeps[]
+      CheckedDeps[:logger].info('abc', 'def') { 'block' }
     end
   end
 end
@@ -100,11 +100,11 @@ module Jason
 
     def self.debug(str); end
 
-    BrazeDeps.register(:logger) { self }
+    CheckedDeps.register(:logger) { self }
   end
 end
 
-BrazeDeps.validate_dependencies!
+CheckedDeps.validate_dependencies!
 
 Other::DependencyUser.self_call
 puts
