@@ -44,6 +44,9 @@ module BrazeDeps
         end
       end
     end
+
+    # Allow this to be garbage-collected, we should no longer need this data
+    @dependency_methods = nil
   end
 
   private_class_method def self.validate_dependency(klass, instance:, method_def:)
