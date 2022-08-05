@@ -3,22 +3,12 @@
 require 'dry-container'
 require 'dry-auto_inject'
 
-# CheckedDeps dependency container and injection
-# with method+signature checking
+require 'checked_deps/errors'
+require 'checked_deps/version'
+require 'checked_deps/method_definition'
+
+# Dependency Injection with method and argument validation
 module CheckedDeps
-  class MissingMethodError < StandardError; end
-  class WrongArgumentsError < StandardError; end
-
-  # Helps to define a method with a name and param_types
-  class MethodDefinition
-    attr_accessor :name, :param_types
-
-    def initialize(name, param_types: [])
-      @name = name
-      @param_types = param_types
-    end
-  end
-
   extend Dry::Container::Mixin
 
   INJECT = Dry::AutoInject(CheckedDeps)
@@ -65,47 +55,3 @@ module CheckedDeps
     raise CheckedDeps::MissingMethodError, "#{instance}##{method_def.name} does not exist"
   end
 end
-
-module Other
-  # A class to autoinject the registered logger
-  class DependencyUser
-    CheckedDeps.depend_on(
-      self,
-      {
-        logger: [
-          CheckedDeps::MethodDefinition.new(:info, param_types: %i[req req block]),
-          CheckedDeps::MethodDefinition.new(:debug, param_types: %i[req])
-        ]
-      }
-    )
-
-    def call
-      # injected ivar @logger by calling CheckedDeps.depend_on()
-      logger.info('abc', 'def') { 'block' }
-    end
-
-    def self.self_call
-      # not injected to the class, so use CheckedDeps.resolve() or CheckedDeps[]
-      CheckedDeps[:logger].info('abc', 'def') { 'block' }
-    end
-  end
-end
-
-module Jason
-  # Logger to be injected
-  class Logger
-    def self.info(abc, efg, &blk)
-      puts abc, efg, blk.call
-    end
-
-    def self.debug(str); end
-
-    CheckedDeps.register(:logger) { self }
-  end
-end
-
-CheckedDeps.validate_dependencies!
-
-Other::DependencyUser.self_call
-puts
-Other::DependencyUser.new.call
