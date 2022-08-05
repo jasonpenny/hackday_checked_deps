@@ -1,5 +1,7 @@
 # frozen_string_literal: true
 
+require 'checked_deps'
+
 module Logger
   # Example Logger that registers itself with checked_deps
   class Printer
