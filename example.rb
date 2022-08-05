@@ -9,6 +9,8 @@ gemfile do
   gem 'some_dep', path: './some_dep'
 end
 
+CheckedDeps.validate_dependencies!
+
 puts '----------------------------------------------'
 puts 'Dependency Injection on an instantiated object'
 puts '----------------------------------------------'

@@ -5,7 +5,15 @@ require 'checked_deps'
 module SomeDep
   # A class that autoinjects the registered logger
   class DependencyUser
-    include CheckedDeps::INJECT[:logger]
+    CheckedDeps.depend_on(
+      self,
+      {
+        logger: [
+          CheckedDeps::MethodDefinition.new(:info, param_types: %i[req req block]),
+          CheckedDeps::MethodDefinition.new(:debug, param_types: %i[req req block])
+        ]
+      }
+    )
 
     def example_call
       # injected instance var @logger
