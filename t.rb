@@ -24,8 +24,8 @@ module BrazeDeps
   INJECT = Dry::AutoInject(BrazeDeps)
   private_constant :INJECT
 
-  def self.depend_on(klass, dependencies)
-    klass.include INJECT[*dependencies.keys]
+  def self.depend_on(klass, dependencies, auto_inject: true)
+    klass.include INJECT[*dependencies.keys] if auto_inject
 
     @dependency_methods ||= {}
     dependencies.each do |dependency, method_defs|
