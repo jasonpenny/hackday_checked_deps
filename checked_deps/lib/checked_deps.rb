@@ -45,8 +45,8 @@ module CheckedDeps
     return if method_def.param_types == actual_param_types
 
     raise CheckedDeps::WrongArgumentsError,
-          "#{klass} : #{instance}##{method_def.name} " \
-          "wants arguments #{method_def.param_types} but receives #{actual_param_types}"
+          "#{klass} wants #{instance}##{method_def.name} " \
+          "to receive arguments #{method_def.param_types} but it receives #{actual_param_types}"
   end
 
   def self.method_parameter_types(instance, method_def)
