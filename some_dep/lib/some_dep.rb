@@ -10,7 +10,7 @@ module SomeDep
       {
         logger: [
           CheckedDeps::MethodDefinition.new(:info, param_types: %i[req req block]),
-          CheckedDeps::MethodDefinition.new(:debug, param_types: %i[req req block])
+          CheckedDeps::MethodDefinition.new(:debug, param_types: %i[req])
         ]
       }
     )
@@ -22,7 +22,7 @@ module SomeDep
 
     def self.self_example_call
       # not injected to the class, so use CheckedDeps.resolve() or CheckedDeps[]
-      CheckedDeps[:logger].debug('abc', 'def') { 'block' }
+      CheckedDeps[:logger].debug("abc\ndef\nblock")
     end
   end
 end

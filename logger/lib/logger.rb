@@ -9,8 +9,8 @@ module Logger
       puts 'INFO', abc, efg, blk.call
     end
 
-    def self.debug(abc, efg, &blk)
-      puts 'DEBUG', abc, efg, blk.call
+    def self.debug(abc)
+      puts 'DEBUG', abc
     end
 
     CheckedDeps.register(:logger) { self }
